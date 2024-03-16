@@ -18,12 +18,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.itscfortinkoff.tinkoff.screens.sha256
 import com.itscfortinkoff.tinkoff.view.MyViewModel
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -33,7 +37,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Query
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
@@ -53,20 +59,72 @@ data class MyResponse(
     val message: String
 )
 
-val url = "http://26.140.205.19:5082"
+data class TagsPost(
+    var userId: Int,
+    var tags: String
+)
+
+data class Find(
+    var userId: Int,
+    var city: Int
+)
+
+data class ResponseData(
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("lastName") val lastName: String,
+    @SerializedName("gender") val gender: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
+)
+
+val url = "http://10.10.110.219:5082"
 
 interface ApiService {
     @GET("/api/users/login")
-    fun getUser(@Query("Email") email: String, @Query("Password") password: String): Call<List<UserApi>>
+    fun getUser(
+        @Query("Id=") id: Int,
+    ): Call<UserApi>
 
     @GET("/api/users/login")
-    fun login(@Query("Email") email: String, @Query("Password") password: String): Call<UserApi>
+    fun login(
+        @Query("Email") email: String,
+        @Query("Password") password: String
+    ): Call<ResponseData>
+
+    @GET("api/users/findBestMatchingUsers")
+    fun find(
+        @Query("userId") userId: Int,
+        @Query("isCity") isCity: Boolean
+    ): Call<List<Find>>
 
     @POST("/api/users/create")
     fun createUser(@Body userApi: UserApi): Call<MyResponse>
 
+    @POST("/api/users/addOrUpdateTags")
+    fun tags(
+        @Body tags: TagsPost
+    ): Call<MyResponse>
+
     @DELETE("/api/users/create")
     fun deleteUser(): Call<Void>
+
+    @Multipart
+    @POST("api/upload/image")
+    fun uploadImage(@Part file: MultipartBody.Part): Call<Void>
+
+    @GET("/api/user/image/getmyimg")
+    fun getUserImage(@Query("userId") userId: Int): Call<ResponseBody>
+
+    companion object {
+        fun create(): ApiService {
+            val retrofit = Retrofit.Builder()
+                .baseUrl(url)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            return retrofit.create(ApiService::class.java)
+        }
+    }
 }
 
 class ComposeMain {
@@ -109,14 +167,6 @@ class ComposeMain {
                 Text("Save")
             }
             Button(onClick = {
-                userApiList = api.getUsers("", "")
-                GlobalScope.launch(Dispatchers.IO) {
-                    val response = apiUser.getUser("", "").awaitResponse()
-                    if(response.isSuccessful){
-                        userApiList = response.body()!!
-                        elements = userApiList
-                    }
-                }
 
             }) {
                 Text("Read")
@@ -158,67 +208,101 @@ class ComposeMain {
 }
 
 class Retrofit {
-    val model = MyViewModel()
-    fun getUsers(email: String, password: String): MutableList<UserApi>{
-        val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
-        val userApiList: MutableList<UserApi> = mutableListOf()
-        val api= Retrofit.Builder()
-            .baseUrl(url)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
 
-        api.getUser(email, password).enqueue(object : Callback<List<UserApi>> {
-            override fun onResponse(
-                call: Call<List<UserApi>>,
-                response: Response<List<UserApi>>
-            ) {
-                if(response.isSuccessful){
-                    response.body()?.let{
-                        for(comm in it){
-                            userApiList.add(comm)
-                        }
-                    }
-                }
-            }
+    fun find(
+        model: MyViewModel
+    ){
+        val apiService = ApiService.create()
 
-            override fun onFailure(call: Call<List<UserApi>>, t: Throwable) {
-            }
-        })
-        return userApiList
-    }
+        val call = apiService.find(model.find_id, model.isCity)
 
-    fun login(email: String, password: String){
-        val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
-
-        val api = Retrofit.Builder()
-            .baseUrl(url)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
-
-        val call = api.login(email, password)
-        call.enqueue(object : Callback<UserApi> {
-            override fun onResponse(call: Call<UserApi>, response: Response<UserApi>) {
+        call.enqueue(object : Callback<List<Find>> {
+            override fun onResponse(call: Call<List<Find>>, response: Response<List<Find>>) {
                 if (response.isSuccessful) {
-                    val dataResponse = response.body()
-                    model.userApi.id = dataResponse?.id!!
-                    model.userApi.name = dataResponse.name
-                    model.userApi.lastName = dataResponse.lastName
-                    model.userApi.gender = dataResponse.gender
-                    model.userApi.email = dataResponse.email
-                    model.userApi.password = dataResponse.password
+                    for (find in response.body()!!){
+                        Log.d("Error","Error: ${find.userId}")
+                        model.responseFind.add(find)
+                    }
                 } else {
-                    model.userApi.id = -1
+                    Log.d("Error","Error: ${response.code()} ${response.message()}")
                 }
             }
-            override fun onFailure(call: Call<UserApi>, t: Throwable) {
-                println("Request failed: ${t.message}")
+
+            override fun onFailure(call: Call<List<Find>>, t: Throwable) {
+                Log.d("Error","Request failed: ${t.message}")
             }
         })
     }
+
+    fun getUser(id: Int, model: MyViewModel){
+        val apiService = ApiService.create()
+        val call = apiService.login(model.email_cur, model.password_cur)
+
+        call.enqueue(object : Callback<ResponseData> {
+            override fun onResponse(call: Call<ResponseData>, response: Response<ResponseData>) {
+                if (response.isSuccessful) {
+                    val responseData = response.body()
+                    if (responseData != null) {
+                        model.userApi.id = responseData.id
+                        model.userApi.name = responseData.name
+                        model.userApi.lastName = responseData.lastName
+                        model.userApi.gender = responseData.gender
+                        model.userApi.email = responseData.email
+                        model.userApi.password = responseData.password
+                        Log.d("print","" +
+                                "${responseData.id}     " +
+                                "${responseData.name}   " +
+                                "${responseData.lastName}   " +
+                                "${responseData.gender} " +
+                                "${responseData.email}  " +
+                                "${responseData.password}   ")
+                    }
+                } else {
+                    Log.d("Error","Error: ${response.code()} ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseData>, t: Throwable) {
+                Log.d("Error","Request failed: ${t.message}")
+            }
+        })
+    }
+
+    fun login(model: MyViewModel) {
+        val apiService = ApiService.create()
+        val call = apiService.login(model.email_cur, sha256(model.password_cur))
+
+        call.enqueue(object : Callback<ResponseData> {
+            override fun onResponse(call: Call<ResponseData>, response: Response<ResponseData>) {
+                if (response.isSuccessful) {
+                    val responseData = response.body()
+                    if (responseData != null) {
+                        Log.d("Error","" +
+                                "${responseData.id}     " +
+                                "${responseData.name}   " +
+                                "${responseData.lastName}   " +
+                                "${responseData.gender} " +
+                                "${responseData.email}  " +
+                                "${responseData.password}   ")
+                        model.userApi.id = responseData.id
+                        model.userApi.name = responseData.name
+                        model.userApi.lastName = responseData.lastName
+                        model.userApi.gender = responseData.gender
+                        model.userApi.email = responseData.email
+                        model.userApi.password = responseData.password
+                    }
+                } else {
+                    Log.d("Error","Error238: ${response.code()} ${response.message()} ${response.raw()}")
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseData>, t: Throwable) {
+                Log.d("Error243","Request failed: ${t.message}")
+            }
+        })
+    }
+
+
 
     fun postUser(userApi: UserApi){
         val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
@@ -231,6 +315,37 @@ class Retrofit {
             .create(ApiService::class.java)
 
         val call = api.createUser(userApi)
+        call.enqueue(object : Callback<MyResponse> {
+            override fun onResponse(call: Call<MyResponse>, response: Response<MyResponse>) {
+                if (response.isSuccessful) {
+                    val responseModel = response.body()
+                    // Обработка успешного ответа
+                    if (responseModel != null) {
+                        val gson = Gson()
+                        val jsonObject = gson.fromJson(responseModel.message, Map::class.java)
+                        Log.d("post", jsonObject.toString())
+                    }
+                } else {
+                    // Обработка неуспешного ответа
+                }
+            }
+            override fun onFailure(call: Call<MyResponse>, t: Throwable) {
+                // Обработка ошибки
+            }
+        })
+    }
+
+    fun tags(tags: TagsPost){
+        val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
+
+        val api = Retrofit.Builder()
+            .baseUrl(url)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+
+        val call = api.tags(tags)
         call.enqueue(object : Callback<MyResponse> {
             override fun onResponse(call: Call<MyResponse>, response: Response<MyResponse>) {
                 if (response.isSuccessful) {

@@ -23,6 +23,7 @@ import com.itscfortinkoff.tinkoff.objects.Routes
 import com.itscfortinkoff.tinkoff.screens.Choice
 import com.itscfortinkoff.tinkoff.screens.LogIn
 import com.itscfortinkoff.tinkoff.screens.Main
+import com.itscfortinkoff.tinkoff.screens.Search
 import com.itscfortinkoff.tinkoff.screens.SignUp
 import com.itscfortinkoff.tinkoff.screens.Start
 import com.itscfortinkoff.tinkoff.ui.theme.MyAppTheme
@@ -102,6 +103,15 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.MAIN_SCREEN) {
                             Main(
                                 model = model,
+                                api = api,
+                                apiUser = apiUser,
+                                navController = navController,
+                            )
+                        }
+                        composable(Routes.SEARCH_SCREEN) {
+                            Search(
+                                model = model,
+                                api = api
                             )
                         }
                     }

@@ -1,5 +1,6 @@
 package com.itscfortinkoff.tinkoff.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +51,11 @@ fun LogIn(
     api: Retrofit,
     apiUser: ApiService
 ) {
+
+    var flag by remember {
+        mutableStateOf(false)
+    }
+
     Scaffold{
         Column(
             modifier = Modifier
@@ -136,8 +142,12 @@ fun LogIn(
             Button(
                 onClick = {
                     GlobalScope.launch(Dispatchers.IO) {
-                        apiUser.login(model.email_cur, sha256(model.password_cur)).awaitResponse()
+                        val response = apiUser.login(model.email_cur, sha256(model.password_cur)).awaitResponse()
+                        if(response.isSuccessful){
+                            api.login(model)
+                        }
                     }
+                    navController.navigate(Routes.MAIN_SCREEN)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MainYellow,
