@@ -1,5 +1,6 @@
 package com.itscfortinkoff.tinkoff.api
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.google.gson.Gson
+import com.itscfortinkoff.tinkoff.view.MyViewModel
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -31,26 +34,33 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 data class UserApi(
-    val name: String,
-    val lastName: String,
-    val gender: String,
-    val email: String,
-    val password: String
+    var id: Int,
+    var name: String,
+    var lastName: String,
+    var gender: String,
+    var email: String,
+    var password: String
 )
 
 data class MyResponse(
     val message: String
 )
 
+val url = "http://26.140.205.19:5082"
+
 interface ApiService {
-    @GET("/api/users/create")
-    fun getUser(): Call<List<UserApi>>
+    @GET("/api/users/login")
+    fun getUser(@Query("Email") email: String, @Query("Password") password: String): Call<List<UserApi>>
+
+    @GET("/api/users/login")
+    fun login(@Query("Email") email: String, @Query("Password") password: String): Call<UserApi>
 
     @POST("/api/users/create")
     fun createUser(@Body userApi: UserApi): Call<MyResponse>
@@ -67,7 +77,7 @@ class ComposeMain {
         val api = Retrofit()
         var userApiList: List<UserApi> = mutableListOf()
         val apiUser = retrofit2.Retrofit.Builder()
-            .baseUrl("http://26.140.205.19:5082")
+            .baseUrl(url)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
@@ -93,16 +103,15 @@ class ComposeMain {
 
             Button(onClick = {
                 if(name.isNotEmpty() && age.isNotEmpty()) {
-                    val userApi = UserApi("qwe","123","rty","4","5")
-                    api.postUser(userApi)
+
                 }
             }) {
                 Text("Save")
             }
             Button(onClick = {
-                userApiList = api.getUsers()
+                userApiList = api.getUsers("", "")
                 GlobalScope.launch(Dispatchers.IO) {
-                    val response = apiUser.getUser().awaitResponse()
+                    val response = apiUser.getUser("", "").awaitResponse()
                     if(response.isSuccessful){
                         userApiList = response.body()!!
                         elements = userApiList
@@ -149,17 +158,18 @@ class ComposeMain {
 }
 
 class Retrofit {
-    fun getUsers(): MutableList<UserApi>{
+    val model = MyViewModel()
+    fun getUsers(email: String, password: String): MutableList<UserApi>{
         val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
         val userApiList: MutableList<UserApi> = mutableListOf()
         val api= Retrofit.Builder()
-            .baseUrl("http://26.140.205.19:5082")
+            .baseUrl(url)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
 
-        api.getUser().enqueue(object : Callback<List<UserApi>> {
+        api.getUser(email, password).enqueue(object : Callback<List<UserApi>> {
             override fun onResponse(
                 call: Call<List<UserApi>>,
                 response: Response<List<UserApi>>
@@ -179,11 +189,42 @@ class Retrofit {
         return userApiList
     }
 
+    fun login(email: String, password: String){
+        val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
+
+        val api = Retrofit.Builder()
+            .baseUrl(url)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+
+        val call = api.login(email, password)
+        call.enqueue(object : Callback<UserApi> {
+            override fun onResponse(call: Call<UserApi>, response: Response<UserApi>) {
+                if (response.isSuccessful) {
+                    val dataResponse = response.body()
+                    model.userApi.id = dataResponse?.id!!
+                    model.userApi.name = dataResponse.name
+                    model.userApi.lastName = dataResponse.lastName
+                    model.userApi.gender = dataResponse.gender
+                    model.userApi.email = dataResponse.email
+                    model.userApi.password = dataResponse.password
+                } else {
+                    model.userApi.id = -1
+                }
+            }
+            override fun onFailure(call: Call<UserApi>, t: Throwable) {
+                println("Request failed: ${t.message}")
+            }
+        })
+    }
+
     fun postUser(userApi: UserApi){
         val okHttpClient: OkHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient()
 
-        val api= Retrofit.Builder()
-            .baseUrl("http://26.140.205.19:5082")
+        val api = Retrofit.Builder()
+            .baseUrl(url)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -196,7 +237,9 @@ class Retrofit {
                     val responseModel = response.body()
                     // Обработка успешного ответа
                     if (responseModel != null) {
-                        // Делаем что-то с данными из responseModel
+                        val gson = Gson()
+                        val jsonObject = gson.fromJson(responseModel.message, Map::class.java)
+                        Log.d("post", jsonObject.toString())
                     }
                 } else {
                     // Обработка неуспешного ответа

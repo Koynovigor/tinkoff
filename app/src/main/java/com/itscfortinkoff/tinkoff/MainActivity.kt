@@ -18,8 +18,11 @@ import androidx.navigation.compose.rememberNavController
 import com.itscfortinkoff.tinkoff.api.ApiService
 import com.itscfortinkoff.tinkoff.api.Retrofit
 import com.itscfortinkoff.tinkoff.api.UserApi
+import com.itscfortinkoff.tinkoff.api.url
 import com.itscfortinkoff.tinkoff.objects.Routes
 import com.itscfortinkoff.tinkoff.screens.Choice
+import com.itscfortinkoff.tinkoff.screens.LogIn
+import com.itscfortinkoff.tinkoff.screens.Main
 import com.itscfortinkoff.tinkoff.screens.SignUp
 import com.itscfortinkoff.tinkoff.screens.Start
 import com.itscfortinkoff.tinkoff.ui.theme.MyAppTheme
@@ -44,9 +47,8 @@ class MainActivity : ComponentActivity() {
             ) {
 
                 val api = Retrofit()
-                var userApiList: List<UserApi> = mutableListOf()
                 val apiUser = retrofit2.Retrofit.Builder()
-                    .baseUrl("http://26.140.205.19:5082")
+                    .baseUrl(url)
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
                     .create(ApiService::class.java)
@@ -86,6 +88,20 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel,
                                 navController = navController,
                                 api = api,
+                            )
+                        }
+                        composable(Routes.LOGIN_SCREEN) {
+                            LogIn(
+                                model = model,
+                                viewModel = viewModel,
+                                navController = navController,
+                                api = api,
+                                apiUser = apiUser
+                            )
+                        }
+                        composable(Routes.MAIN_SCREEN) {
+                            Main(
+                                model = model,
                             )
                         }
                     }

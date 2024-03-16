@@ -25,6 +25,7 @@ import androidx.navigation.NavHostController
 import com.itscfortinkoff.tinkoff.R
 import com.itscfortinkoff.tinkoff.api.Retrofit
 import com.itscfortinkoff.tinkoff.api.UserApi
+import com.itscfortinkoff.tinkoff.objects.Routes
 import com.itscfortinkoff.tinkoff.ui.theme.MainYellow
 import com.itscfortinkoff.tinkoff.ui.theme.WhiteYellow
 import com.itscfortinkoff.tinkoff.view.MainViewModel
@@ -38,7 +39,6 @@ fun SignUp(
     navController: NavHostController,
     api: Retrofit
 ) {
-
     Scaffold{
         Column(
             modifier = Modifier
@@ -246,6 +246,7 @@ fun SignUp(
                     viewModel.insertUser(model.user)
 
                     val userApi = UserApi(
+                        id = 0,
                         name = model.firstName,
                         lastName = model.secondName,
                         gender = model.gender,
@@ -254,6 +255,7 @@ fun SignUp(
                     )
 
                     api.postUser(userApi)
+                    navController.navigate(Routes.LOGIN_SCREEN)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MainYellow,

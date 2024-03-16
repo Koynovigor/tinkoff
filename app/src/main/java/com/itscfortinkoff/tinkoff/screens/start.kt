@@ -159,7 +159,7 @@ fun Choice(
             ) {
                 Button(
                     onClick = {
-                              navController.navigate(Routes.SIGNUP_SCREEN)
+                        navController.navigate(Routes.SIGNUP_SCREEN)
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MainYellow,
@@ -173,7 +173,9 @@ fun Choice(
                     )
                 }
                 Button(
-                    onClick = { /*TODO*/ },
+                    onClick = {
+                        navController.navigate(Routes.LOGIN_SCREEN)
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
                         contentColor = Gray80

@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "users")
 class User {
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "userId")
     var id: Int = 0
 
@@ -29,7 +29,6 @@ class User {
     var patronymic: String = ""
 
     constructor()
-
     constructor(
         userId: Int,
         userName: String,
@@ -40,6 +39,21 @@ class User {
         userPatronymic: String
     ) {
         this.id = userId
+        this.name = userName
+        this.lastName = userLastName
+        this.gender = userGender
+        this.email = userEmail
+        this.password = userPassword
+        this.patronymic = userPatronymic
+    }
+    constructor(
+        userName: String,
+        userLastName: String,
+        userGender: String,
+        userEmail: String,
+        userPassword: String,
+        userPatronymic: String
+    ) {
         this.name = userName
         this.lastName = userLastName
         this.gender = userGender
