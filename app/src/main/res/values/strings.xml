@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">tinkoff</string>
+    <string name="phrasestart1">Найди себе новых друзей среди колег</string>
+    <string name="phrasestart2">Общайся, развивайся</string>
+    <string name="phrasestart3">Ходите вместе чай пить и печеньки кушать</string>
+    <string name="phrasestart4">Ещё одна какая-нибудь мотивирующая фраза!</string>
+    <string name="welcom">Добро пожаловать\nв Tinterest!</string>
+    <string name="run">Начать</string>
+    <string name="signup">Зарегистрироваться</string>
+    <string name="login">Войти</string>
+    <string name="registration">Регистрация</string>
+    <string name="email">Email компании *</string>
+    <string name="firstname">Имя *</string>
+    <string name="secondname">Фамилия *</string>
+    <string name="patronymic">Отчество</string>
+    <string name="gender">Пол *</string>
+    <string name="password">Пароль *</string>
+</resources>
